@@ -9,7 +9,7 @@
     <h1>分子量計算 (molecular weight calculator)</h1>
     <p><a id="atomicWeight" target="_blank" rel="noopener noreferrer">原子量表（日本化学会）</a></p>
     <h2>化合物 (compound)</h2>
-    <label>化学式:
+    <label class="inline2block">化学式:
         <input type="text" id="compoundFormula" inputmode="email" autocorrect="off" autocaptitalize="off" value="CuSO4.5(H2O)" pattern="^[0-9A-Za-z]*$" title="半角英数字で入力してください">
         <input type="button" value="計算" onclick="calcCompound()">
     </label>
@@ -17,7 +17,13 @@
     <p class="annotation"><small>※有効数字は4桁（放射性元素を除く）</small></p>
 
     <h2>化学反応式 (chemical equation)</h2>
-    
+    <label class="inline2block">化学式:
+        <input type="text" id="chemicalEquation" inputmode="email" autocorrect="off" autocaptitalize="off" value="NH4Cl, Ca(OH)2 = CaCl , H2O + NH3" pattern="^[0-9A-Za-z=]*$" title="半角英数字で入力してください">
+        <input type="button" value="計算" onclick="calcEquation()">
+    </label>
+    <input type="text" id="outputChemicalEquation" value="InternetExploler非対応です。">
+    <p><small>本サイトの内容にはできる限り注意を払っておりますが、正確性・完全性を保証するものではありません。<br>
+        本サイトをご利用されたことで、直接・間接的に生じた損害について一切の責任を本サイトは負いません。</small></p>
     <script type="text/javascript" src="calc_mol.js"></script>
 </body>
 </html>
