@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>分子量計算 (molecular weight calculator)</title>
+    <link rel="stylesheet" href="common.css">
+</head>
+<body>
+    <h1>分子量計算 (molecular weight calculator)</h1>
+    <p><a id="atomicWeight" target="_blank" rel="noopener noreferrer">原子量表（日本化学会）</a></p>
+    <h2>化合物 (compound)</h2>
+    <label>化学式:
+        <input type="text" id="compoundFormula" inputmode="email" autocorrect="off" autocaptitalize="off" value="CuSO4.5(H2O)" pattern="^[0-9A-Za-z]*$" title="半角英数字で入力してください">
+        <input type="button" value="計算" onclick="calcCompound()">
+    </label>
+    <input type="text" id="outputCompoundWeight" value="InternetExploler非対応です。">
+    <p class="annotation"><small>※有効数字は4桁（放射性元素を除く）</small></p>
+
+    <h2>化学反応式 (chemical equation)</h2>
+    
+    <script type="text/javascript" src="calc_mol.js"></script>
+</body>
+</html>
