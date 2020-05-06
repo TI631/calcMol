@@ -131,10 +131,11 @@ const chemicalEquation=document.getElementById('chemicalEquation');
 const outputChemicalEquation=document.getElementById('outputChemicalEquation');
 
 const httpObj=new XMLHttpRequest();
+let atomicTable;
 httpObj.open("get","https://ti631.github.io/calcMol/atomicWeight.json");
 httpObj.responseType="json";
 httpObj.onload=function(){
-    const atomicTable=JSON.parse(this.responseText);
+    atomicTable=JSON.parse(this.response);
     console.log("OK JSON");
 }
 httpObj.send();
