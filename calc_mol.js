@@ -1,7 +1,7 @@
 "use strict";
 
 const atomicTable={
-    "source": "http://www.chemistry.or.jp/activity/atomicTable2020.pdf#page=4",
+    "source": "http://www.chemistry.or.jp/activity/atomictable2020.pdf#page=4",
     "H":1.008,
     "He":4.003,
     "Li":6.941,
@@ -122,6 +122,9 @@ const atomicTable={
     "Og":294
 };
 const atomicWeightSource=document.getElementById('atomicWeight');
+atomicWeightSource.href=atomicTable.source;
+
+window.onload=()=>{calcCompound(); calcEquation();}
 
 const braL=/[[({]/;
 const braR=/[\])}]/;
@@ -140,17 +143,14 @@ const calcFormulaWeight=formula=>{
     if((coef=/^[0-9]+/.exec(formula))==null){
         coef=1;
     }else{
-        iStart=coef.length;
+        iStart=coef.toString().length;
         coef=parseInt(coef);
     }
     for(let i=iStart;i<len;i++){
         let atom="";
         if(/[A-Z]/.test(formula[i])){
             atom+=formula[i];
-            while(/[a-z0-9]/.test(formula[i+1])&&i+1<len){
-                atom+=formula[i+1];
-                i++;
-            }
+            while(/[a-z0-9]/.test(formula[i+1])&&i+1<len) atom+=formula[1+i++];
             sumWeight+=decompose2Atoms(atom);
         }else if(braL.test(formula[i])){
             let nBra=1;
@@ -167,10 +167,7 @@ const calcFormulaWeight=formula=>{
                 i++;
             }
             let coef2="";
-            while(/[0-9]/.test(formula[i+1])&&i+1<len){
-                coef2+=formula[i+1];
-                i++;
-            }
+            while(/[0-9]/.test(formula[i+1])&&i+1<len) coef2+=formula[1+i++];
             coef2=(coef2==="" ? 1 : parseInt(coef2));
             sumWeight+=coef2*calcFormulaWeight(atom);
         }else{
@@ -178,28 +175,124 @@ const calcFormulaWeight=formula=>{
         }
     }
     return coef*sumWeight;
-}
+};
 const decompose2Atoms=(formula)=>{
     const atoms=formula.split(/([A-Z][a-z]?\d*)/).filter(e => e!=="");
     const coef=(isFinite(atoms[0]) ? atoms[0] : 1);
     return coef*atoms.slice(coef>1 ? 1 : 0).reduce((sum,e)=>sum+calcWeight(e.split(/(\d+)/).filter(e=>e!=="")),0);
-}
+};
 const calcWeight=(atom)=>(atom.length===2?atomicTable[atom[0]]*atom[1]:atomicTable[atom]);
 
 // for chemical equation
-const calcEquation=()=>outputChemicalEquation.value=calcEquationCoef(chemicalEquation.value.replace(/\s*[+,]\s*/g,"").split("="));
+const calcEquation=()=>outputChemicalEquation.value=calcEquationCoef(chemicalEquation.value.replace(/\s*[+,]\s*/g,","));
 const calcEquationCoef=(equation)=>{
-    let [left,right]=equation;
-    let i,atom;
+    let ans="";
+    let i=0,atom,tmp;
     let atoms=new Map();
-    left=left.split(/([A-Z][a-z]?[0-9]*)/).filter(e=>e!=="");
+    equation.split(/([A-Z][a-z]?[0-9]*)/).filter(e=>/[A-Za-z0-9]+/.test(e)).forEach(e=>{
+        atom=/[A-Z][a-z]?/.exec(e)[0];
+        if(!atoms.has(atom)) atoms.set(atom,i++);
+    });
+    let [left,right]=equation.split(/=|=>|->|⇒|→/).map(e=>e.trim().split(","));
+    let coef=new Array(atoms.size);
+    for(i=0;i<coef.length;i++) coef[i]=new Array(right.length+left.length).fill(0);
+    for(i=0;i<left.length;i++) setAtomCoef(i,left[i],atoms,coef,1);
+    for(i=0;i<right.length;i++) setAtomCoef(left.length+i,right[i],atoms,coef,-1);
+console.log(atoms,coef[0],coef[1],coef[2]);
+    pivotGaussJordan(coef);
+console.log(coef);
     for(i=0;i<left.length;i++){
-        if(/[A-Za-z]+[0-9]*/.test(left[i])){
-            atoms.set(atom=/[A-Za-z]+/.exec(left[i])[0], atoms.has(atom) ? atoms.get(atom)+1 : 1);
+        ans+=((tmp=Math.round(coef[i][i]*1000)/1000)===1?"":tmp)+left[i]+"+";
+    }
+    ans=ans.slice(0,-1)+"=";
+    for(i=left.length;i<left.length+right.length-1;i++){
+        ans+=((tmp=Math.round(coef[i][i]*1000)/1000)===1?"":tmp)+right[i-left.length]+"+";
+    }
+    ans+=((tmp=-Math.round(coef.pop().pop()*1000)/1000)===1?"":tmp)+right.pop();
+    return ans;
+};
+
+const setAtomCoef=(row,str,atoms,coefMatrix,coef)=>{
+    let i,coef1,iStart=0;
+    if((coef1=/^[0-9]+/.exec(str))==null){
+        coef1=1;
+    }else{
+        iStart=coef1.toString().length;
+        coef1=parseInt(coef1);
+    }
+    for(i=iStart;i<str.length;i++){
+        let atom="";
+        if(/[A-Z]/.test(str[i])){
+            atom+=str[i];
+            while(/[a-z0-9]/.test(str[i+1])&&i+1<str.length) atom+=str[1+i++];
+            atom=atom.split(/([A-Z][a-z]?)/).filter(e=>/\S/.test(e));
+            if(atom.length===1) atom.push("1");
+            coefMatrix[atoms.get(atom[0])][row]+=coef*coef1*parseInt(atom[1]);
+        }else if(braL.test(str[i])){
+            let nBra=1;
+            while(nBra>0&&i+1<str.length){
+                if(braR.test(str[i+1])){
+                    nBra--;
+                    if(nBra>0) atom+=str[i+1];
+                }else if(braL.test(str[i+1])){
+                    nBra++;
+                    atom+=str[i+1];
+                }else{
+                    atom+=str[i+1];
+                }
+                i++;
+            }
+            let coef2="";
+            while(/[0-9]/.test(str[i+1])&&i+1<str.length) coef2+=str[1+i++];
+            coef2=(coef2==="" ? 1 : parseInt(coef2));
+            setAtomCoef(row,atom,atoms,coefMatrix,coef2);
+        }else{
+            console.log("undefined:",str[i]);
         }
     }
-    console.log(left,"=",right,",",atoms);
-}
-atomicWeightSource.href=atomicTable.source;
-window.onload=()=>{calcCompound(); calcEquation();}
+};
+
+const pivotGaussJordan=(coef)=>{
+    let i,j,min=1,tmp;
+    let row,maxRow,col=0;
+    for(row=0;row<coef.length;row++){
+        maxRow=coef.reduce((prev,current,i,arr)=>{
+            if(i<=row){
+                return row;
+            }else if(Math.abs(arr[i][col])>Math.abs(arr[prev][col])){
+                return i;
+            }else{
+                return prev;
+            }
+        },0);
+        if(coef[maxRow][col]===0){
+            col++,row--;
+            continue;
+        }
+        [coef[row],coef[maxRow]]=[coef[maxRow],coef[row]];
+        tmp=coef[row][col];
+        for(i=0;i<coef[0].length;i++) coef[row][i]/=tmp;
+        for(i=0;i<coef.length;i++){
+            if(i===row) continue;
+            tmp=coef[i][col];
+            for(j=0;j<coef[0].length;j++) coef[i][j]-=coef[row][j]*tmp;
+        }
+    }
+    for(i=0;i<coef.length;i++){
+        for(j=0;j<coef[0].length;j++){
+            coef[i][j]/=-coef[i].slice(-1)[0];
+            if(coef[i][j]!==0){
+                coef[i][j]=1/coef[i][j];
+                if(Math.abs(coef[i][j])<min) min=coef[i][j];
+            }
+        }
+    }
+    if(coef!==1){
+        for(i=0;i<coef.length;i++){
+            for(j=0;j<coef[0].length;j++){
+                coef[i][j]/=min;
+            }
+        }
+    }
+};
 
