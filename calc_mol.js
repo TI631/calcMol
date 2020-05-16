@@ -189,26 +189,24 @@ const calcEquationCoef=(equation)=>{
     let ans="";
     let i=0,atom,tmp;
     let atoms=new Map();
-    equation.split(/([A-Z][a-z]?[0-9]*)/).filter(e=>/[A-Za-z0-9]+/.test(e)).forEach(e=>{
+    equation.split(/([A-Z][a-z]?[0-9]*)/).filter(e=>/[A-Za-z]+[0-9]*/.test(e)).forEach(e=>{
         atom=/[A-Z][a-z]?/.exec(e)[0];
         if(!atoms.has(atom)) atoms.set(atom,i++);
     });
     let [left,right]=equation.split(/=|=>|->|⇒|→/).map(e=>e.trim().split(","));
     let coef=new Array(atoms.size);
     for(i=0;i<coef.length;i++) coef[i]=new Array(right.length+left.length).fill(0);
-    for(i=0;i<left.length;i++) setAtomCoef(i,left[i],atoms,coef,1);
-    for(i=0;i<right.length;i++) setAtomCoef(left.length+i,right[i],atoms,coef,-1);
-console.log(atoms,coef[0],coef[1],coef[2]);
+    for(i=0;i<left.length;i++) setAtomCoef(i,"("+left[i].replace(/\./,")(")+")",atoms,coef,1);
+    for(i=0;i<right.length;i++) setAtomCoef(left.length+i,"("+right[i].replace(/\./,")(")+")",atoms,coef,-1);
     pivotGaussJordan(coef);
-console.log(coef);
     for(i=0;i<left.length;i++){
-        ans+=((tmp=Math.round(coef[i][i]*1000)/1000)===1?"":tmp)+left[i]+"+";
+        ans+=((tmp=Math.round(coef[i][i]*1000)/1000)===1?"":tmp)+left[i]+" + ";
     }
-    ans=ans.slice(0,-1)+"=";
+    ans=ans.slice(0,-3)+" = ";
     for(i=left.length;i<left.length+right.length-1;i++){
-        ans+=((tmp=Math.round(coef[i][i]*1000)/1000)===1?"":tmp)+right[i-left.length]+"+";
+        ans+=((tmp=-Math.round(coef[i][i]*1000)/1000)===1?"":tmp)+right[i-left.length]+" + ";
     }
-    ans+=((tmp=-Math.round(coef.pop().pop()*1000)/1000)===1?"":tmp)+right.pop();
+    ans+=((tmp=Math.round(coef[0].pop()*1000)/1000)===1?"":tmp)+right.pop();
     return ans;
 };
 
@@ -245,7 +243,7 @@ const setAtomCoef=(row,str,atoms,coefMatrix,coef)=>{
             let coef2="";
             while(/[0-9]/.test(str[i+1])&&i+1<str.length) coef2+=str[1+i++];
             coef2=(coef2==="" ? 1 : parseInt(coef2));
-            setAtomCoef(row,atom,atoms,coefMatrix,coef2);
+            setAtomCoef(row,atom,atoms,coefMatrix,coef1*coef2);
         }else{
             console.log("undefined:",str[i]);
         }
@@ -255,7 +253,8 @@ const setAtomCoef=(row,str,atoms,coefMatrix,coef)=>{
 const pivotGaussJordan=(coef)=>{
     let i,j,min=1,tmp;
     let row,maxRow,col=0;
-    for(row=0;row<coef.length;row++){
+    for(row=0;row<coef.length&&col<coef[0].length-1;row++){
+        // 最大pivotを持つ行を探索
         maxRow=coef.reduce((prev,current,i,arr)=>{
             if(i<=row){
                 return row;
@@ -265,13 +264,17 @@ const pivotGaussJordan=(coef)=>{
                 return prev;
             }
         },0);
+        // 全部の行でcol列がゼロであれば、次の列を探索
         if(coef[maxRow][col]===0){
             col++,row--;
             continue;
         }
+        // pivotを最大値に変更
         [coef[row],coef[maxRow]]=[coef[maxRow],coef[row]];
+        // pivotの行をpivot値で割る
         tmp=coef[row][col];
         for(i=0;i<coef[0].length;i++) coef[row][i]/=tmp;
+        // 他の行に対してpivot行を引き去る
         for(i=0;i<coef.length;i++){
             if(i===row) continue;
             tmp=coef[i][col];
@@ -279,14 +282,18 @@ const pivotGaussJordan=(coef)=>{
         }
     }
     for(i=0;i<coef.length;i++){
+        const norm=coef[i].slice(-1)[0];
         for(j=0;j<coef[0].length;j++){
-            coef[i][j]/=-coef[i].slice(-1)[0];
+            // 一番右の値で規格化
+            if(norm!==0) coef[i][j]/=norm;
+            // 解にするために、逆数をとる
             if(coef[i][j]!==0){
                 coef[i][j]=1/coef[i][j];
-                if(Math.abs(coef[i][j])<min) min=coef[i][j];
+                if((tmp=Math.abs(coef[i][j]))<min&&tmp>1e-10) min=tmp;
             }
         }
     }
+    // 小数解の頻度を下げるため、簡易的に全体の最小値を全体にかけて正規化
     if(coef!==1){
         for(i=0;i<coef.length;i++){
             for(j=0;j<coef[0].length;j++){
