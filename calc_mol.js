@@ -134,7 +134,10 @@ const chemicalEquation=document.getElementById('chemicalEquation');
 const outputChemicalEquation=document.getElementById('outputChemicalEquation');
 
 // for compound
-const calcCompound=()=>outputCompoundWeight.value=calcFormulaWeight("("+compoundFormula.value.replace(/\./,")(")+")");
+const calcCompound=()=>{
+    outputCompoundWeight.value="";
+    outputCompoundWeight.value=calcFormulaWeight("("+compoundFormula.value.replace(/\./,")(")+")");
+};
 const calcFormulaWeight=formula=>{
     const len=formula.length;
     let sumWeight=0;
@@ -184,7 +187,10 @@ const decompose2Atoms=(formula)=>{
 const calcWeight=(atom)=>(atom.length===2?atomicTable[atom[0]]*atom[1]:atomicTable[atom]);
 
 // for chemical equation
-const calcEquation=()=>outputChemicalEquation.value=calcEquationCoef(chemicalEquation.value.replace(/\s*[+,]\s*/g,","));
+const calcEquation=()=>{
+    outputChemicalEquation.value="";
+    outputChemicalEquation.value=calcEquationCoef(chemicalEquation.value.replace(/\s*[+,]\s*/g,","));
+};
 const calcEquationCoef=(equation)=>{
     let ans="";
     let i=0,atom,tmp;
